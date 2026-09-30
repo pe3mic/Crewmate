@@ -46,11 +46,11 @@ LAUNCHER_DOWNLOAD_URL = "https://raw.githubusercontent.com/jogamerforgames2021/A
 VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/BootstrapperTEST/main/Version.txt"
 MESSAGE_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/message.txt"
 PATCHES_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/Patches.xml"
-SOURCE_CODE_URL = "https://github.com/jogamerforgames2021/BootstrapperTEST/blob/main/my_script.py"
+SOURCE_CODE_URL = "https://github.com/pe3mic/Crewmate"
 GITHUB_REPO = "jogamerforgames2021/AmongUsLauncherNew"
 AUNLOCKER_JSON_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/AUnlockerStuff/Versions.json"
-DISCORD_CLIENT_ID = "1378503147768647821"
-DISCORD_INVITE = "https://discord.gg/7Vvj2vpT6S"
+DISCORD_CLIENT_ID = "1554868828834627584"
+DISCORD_INVITE = "https://discord.gg/DSy4yDqvJw"
 REQUEST_TIMEOUT = 10
 CHUNK_SIZE = 8192
 
@@ -84,7 +84,7 @@ class LauncherState(Enum):
 class Config:
     """Configuration manager"""
     def __init__(self):
-        self.appdata_dir = Path(os.environ["APPDATA"]) / "AmongUsShadowSlime"
+        self.appdata_dir = Path(os.environ["APPDATA"]) / "Crewmate"
         self.appdata_dir.mkdir(parents=True, exist_ok=True)
         self.version_file = self.appdata_dir / "current_version.txt"
         self.game_path_file = self.appdata_dir / "game_path.txt"
@@ -311,14 +311,14 @@ class DiscordRPC:
             self.connected = False
             return False
 
-    def update_status(self, state: str, details: str, large_text: str = "Among Us Shadow Slime"):
+    def update_status(self, state: str, details: str, large_text: str = "Crewmate"):
         """Update Discord status"""
         if self.connected and self.rpc:
             try:
                 self.rpc.update(
                     state=state,
                     details=details,
-                    large_image="amongus",
+                    large_image="icon",
                     large_text=large_text
                 )
             except Exception as e:
@@ -482,7 +482,7 @@ class ModernUI:
         self.discord = DiscordRPC()
 
         self.root = tk.Tk()
-        self.root.title(f"Among Us Launcher v{LAUNCHER_VERSION}")
+        self.root.title(f"Crewmate")
         self.root.geometry("1100x700")
         self.root.minsize(1000, 650)
         self.root.configure(bg="#1a1a1a")
@@ -543,39 +543,7 @@ class ModernUI:
         sidebar_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.root.bind_all("<MouseWheel>", self._on_mousewheel)
-        self.sidebar_canvas.bind("<Enter>", lambda e: setattr(self, "_active_scroll_canvas", self.sidebar_canvas))
-        self.sidebar_canvas.bind("<Leave>", lambda e: setattr(self, "_active_scroll_canvas", None))
-
-        title_frame = tk.Frame(self.sidebar_frame, bg=self.bg_medium, height=120)
-        title_frame.pack(fill=tk.X, padx=15, pady=15)
-        title_frame.pack_propagate(False)
-
-        tk.Label(
-            title_frame,
-            text="AMONG US",
-            font=("Segoe UI", 20, "bold"),
-            bg=self.bg_medium,
-            fg=self.accent_green
-        ).pack(anchor=tk.W, pady=(10, 0))
-
-        tk.Label(
-            title_frame,
-            text="Shadow Slime Launcher",
-            font=("Segoe UI", 10),
-            bg=self.bg_medium,
-            fg=self.text_dim
-        ).pack(anchor=tk.W, pady=(0, 5))
-
-        tk.Label(
-            title_frame,
-            text=f"v{LAUNCHER_VERSION}",
-            font=("Segoe UI", 9),
-            bg=self.bg_medium,
-            fg=self.accent_purple
-        ).pack(anchor=tk.W)
-
-        tk.Frame(self.sidebar_frame, bg=self.bg_light, height=2).pack(fill=tk.X, padx=15, pady=10)
-
+    
         nav_frame = tk.Frame(self.sidebar_frame, bg=self.bg_medium)
         nav_frame.pack(fill=tk.X, padx=15, pady=10)
 
@@ -2040,7 +2008,7 @@ if __name__ == "__main__":
 
             print(f"\n{Colors.INFO}Restarting launcher...{Colors.RESET}\n")
 
-    print(f"\n{Colors.INFO}═══════════════════════════════════════════════════{Colors.RESET}")
-    print(f"{Colors.GOLD}Thanks for using Among Us Shadow Slime Launcher!{Colors.RESET}")
-    print(f"{Colors.INFO}═══════════════════════════════════════════════════{Colors.RESET}\n")
+    print(f"\n{Colors.INFO}══════════════════════════{Colors.RESET}")
+    print(f"{Colors.GOLD}Thanks for using Crewmate!{Colors.RESET}")
+    print(f"{Colors.INFO}══════════════════════════{Colors.RESET}\n")
     input("Press Enter to close...")
