@@ -33,7 +33,8 @@ except ImportError:
 logger.add("launcher.log", level="DEBUG")
 
 LAUNCHER_VERSION = "v0.0.1prealpha"
-LAUNCHER_LATEST = requests.get("https://api.github.com/repos/pe3mic/Crewmate/releases/latest").json()["tag_name"]
+#LAUNCHER_LATEST = requests.get("https://api.github.com/repos/pe3mic/Crewmate/releases/latest").json()["tag_name"]
+LAUNCHER_LATEST = "v0.0.1prealpha"
 LATEST_VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/BootstrapperTEST/main/Version.txt"
 PATCHES_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/Patches.xml"
 SOURCE_CODE_URL = "https://github.com/pe3mic/Crewmate"

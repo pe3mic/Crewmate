@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Crewmate
+GenericName=Game Launcher
+Comment=An improved fork of AULauncher, with first-class Linux support
+Icon=crewmate
+Exec=crewmate
+Terminal=false
+StartupNotify=true
+StartupWMClass=Crewmate
+NoDisplay=false
+Hidden=false
+DBusActivatable=false
+Categories=Game
