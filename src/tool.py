@@ -11,7 +11,6 @@ import zipfile
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
-from enum import Enum
 
 try:
     import requests
@@ -33,11 +32,9 @@ except ImportError:
 
 logger.add("launcher.log", level="DEBUG")
 
-LAUNCHER_VERSION = "1.3"
-LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/LauncherVersion.txt"
-LAUNCHER_DOWNLOAD_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/AmongUsLauncher.exe"
-VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/BootstrapperTEST/main/Version.txt"
-MESSAGE_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/message.txt"
+LAUNCHER_VERSION = "v0.0.1prealpha"
+LAUNCHER_LATEST = requests.get("https://api.github.com/repos/pe3mic/Crewmate/releases/latest").json()["tag_name"]
+LATEST_VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/BootstrapperTEST/main/Version.txt"
 PATCHES_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/Patches.xml"
 SOURCE_CODE_URL = "https://github.com/pe3mic/Crewmate"
 GITHUB_REPO = "jogamerforgames2021/AmongUsLauncherNew"
@@ -1187,7 +1184,7 @@ class ModernUI:
                 self.current_version.set(version)
                 self.update_main_button()
 
-            latest = self.network.fetch_text(VERSION_URL)
+            latest = self.network.fetch_text(LATEST_VERSION_URL)
             if latest:
                 self.latest_version.set(latest)
                 self.update_main_button()
@@ -1248,7 +1245,7 @@ class ModernUI:
 
             latest = self.latest_version.get()
             if latest == "Checking...":
-                latest = self.network.fetch_text(VERSION_URL)
+                latest = self.network.fetch_text(LATEST_VERSION_URL)
                 if not latest:
                     self.status_text.set("Failed to fetch version info")
                     self.main_button.config(state=tk.NORMAL)
@@ -1309,7 +1306,7 @@ class ModernUI:
         """Check for game updates"""
         def check():
             self.status_text.set("Checking for updates...")
-            latest = self.network.fetch_text(VERSION_URL)
+            latest = self.network.fetch_text(LATEST_VERSION_URL)
             if latest:
                 self.latest_version.set(latest)
                 current = self.current_version.get()
@@ -1742,26 +1739,13 @@ with auto-updates and mod support.
         if self.discord.connected:
             self.discord.disconnect()
 
-def check_launcher_update(network: NetworkManager) -> bool:
+def check_launcher_update() -> bool:
     """Check for launcher updates before starting"""
     try:
         logger.info("Checking for launcher updates...")
-        latest = network.fetch_text(LAUNCHER_VERSION_URL)
 
-        if latest and latest != LAUNCHER_VERSION:
-            logger.warning("Launcher update available: {latest} (current: {LAUNCHER_VERSION})")
-            response = input("Download and install update? (yes/no): ").lower()
-
-            if response in ['yes', 'y']:
-                new_exe = Path(f"AmongUsLauncher_{latest}.exe")
-                logger.info("Downloading update...")
-
-                if network.download_file(LAUNCHER_DOWNLOAD_URL, new_exe):
-                    logger.info("Update downloaded! Please run the new launcher.")
-                    subprocess.Popen([str(new_exe)])
-                    return False
-                else:
-                    logger.error("Update download failed. Continuing with current version.")
+        if LAUNCHER_LATEST != LAUNCHER_VERSION:
+            logger.info(f"Launcher update available: {LAUNCHER_LATEST} (current: {LAUNCHER_VERSION})")
         else:
             logger.info("Launcher is up to date")
 
@@ -1803,15 +1787,13 @@ if __name__ == "__main__":
 
             if not network.is_connected():
                 logger.error("No internet connection detected!")
-                logger.warning("Please connect to the internet and restart the launcher.")
-                input("Press Enter to exit...")
+                logger.error("Please connect to the internet and restart the launcher.")
                 break
 
-            if not check_launcher_update(network):
+            if not check_launcher_update():
                 break
 
             logger.info("Launching GUI...")
-            time.sleep(0.5)
             app = ModernUI(config, network)
             app.run()
 
