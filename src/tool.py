@@ -3,7 +3,6 @@ import sys
 import time
 import json
 import hashlib
-import logging
 import threading
 import subprocess
 import shutil
@@ -16,15 +15,14 @@ from enum import Enum
 
 try:
     import requests
-    from colorama import init, Fore, Style
     import ctypes
+    from loguru import logger
     from win32com.client import Dispatch
     import tkinter as tk
     from tkinter import ttk, filedialog, messagebox
-    from PIL import Image, ImageTk, ImageDraw
 except ImportError as e:
     print(f"Missing required package: {e}")
-    print("Install with: pip install requests colorama pywin32 pillow")
+    print("Install with: pip install requests loguru pywin32 pillow")
     sys.exit(1)
 
 try:
@@ -33,12 +31,7 @@ try:
 except ImportError:
     DISCORD_RPC_AVAILABLE = False
 
-init(autoreset=True)
-logging.basicConfig(
-    filename='launcher.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logger.add("launcher.log", level="DEBUG")
 
 LAUNCHER_VERSION = "1.3"
 LAUNCHER_VERSION_URL = "https://raw.githubusercontent.com/jogamerforgames2021/AmongUsLauncherNew/refs/heads/main/LauncherVersion.txt"
@@ -54,32 +47,12 @@ DISCORD_INVITE = "https://discord.gg/DSy4yDqvJw"
 REQUEST_TIMEOUT = 10
 CHUNK_SIZE = 8192
 
-class Colors:
-    """Centralized color definitions"""
-    SUCCESS = Fore.GREEN
-    ERROR = Fore.RED
-    WARNING = Fore.YELLOW
-    INFO = Fore.CYAN
-    HIGHLIGHT = Fore.MAGENTA
-    GOLD = Fore.YELLOW + Style.BRIGHT
-    RESET = Style.RESET_ALL
-
 @dataclass
 class GameVersion:
     """Game version information"""
     version: str
     url: str
     checksum: Optional[str] = None
-
-class LauncherState(Enum):
-    """Launcher state management"""
-    INITIALIZING = "Initializing"
-    CHECKING_UPDATES = "Checking for updates"
-    DOWNLOADING = "Downloading"
-    EXTRACTING = "Extracting"
-    READY = "Ready"
-    RUNNING_GAME = "Running game"
-    ERROR = "Error"
 
 class Config:
     """Configuration manager"""
@@ -106,7 +79,7 @@ class Config:
                 with open(self.config_file, 'r') as f:
                     return {**default_settings, **json.load(f)}
         except Exception as e:
-            logging.error(f"Failed to load settings: {e}")
+            logger.error(f"Failed to load settings: {e}")
         return default_settings
 
     def save_settings(self):
@@ -115,7 +88,7 @@ class Config:
             with open(self.config_file, 'w') as f:
                 json.dump(self.settings, f, indent=4)
         except Exception as e:
-            logging.error(f"Failed to save settings: {e}")
+            logger.error(f"Failed to save settings: {e}")
 
     def get_version(self) -> Optional[str]:
         """Get installed game version"""
@@ -123,7 +96,7 @@ class Config:
             if self.version_file.exists():
                 return self.version_file.read_text().strip()
         except Exception as e:
-            logging.error(f"Failed to read version: {e}")
+            logger.error(f"Failed to read version: {e}")
         return None
 
     def set_version(self, version: str):
@@ -131,7 +104,7 @@ class Config:
         try:
             self.version_file.write_text(version)
         except Exception as e:
-            logging.error(f"Failed to write version: {e}")
+            logger.error(f"Failed to write version: {e}")
 
     def get_game_path(self) -> Optional[Path]:
         """Get game installation path"""
@@ -141,7 +114,7 @@ class Config:
                 if path.exists():
                     return path
         except Exception as e:
-            logging.error(f"Failed to read game path: {e}")
+            logger.error(f"Failed to read game path: {e}")
         return None
 
     def set_game_path(self, path: Path):
@@ -149,14 +122,14 @@ class Config:
         try:
             self.game_path_file.write_text(str(path))
         except Exception as e:
-            logging.error(f"Failed to write game path: {e}")
+            logger.error(f"Failed to write game path: {e}")
 
 class NetworkManager:
     """Handle all network operations"""
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': f'AmongUsLauncher/{LAUNCHER_VERSION}'
+            'User-Agent': f'Crewmate/{LAUNCHER_VERSION}'
         })
 
     def is_connected(self) -> bool:
@@ -174,7 +147,7 @@ class NetworkManager:
             response.raise_for_status()
             return response.text.strip()
         except requests.RequestException as e:
-            logging.error(f"Failed to fetch {url}: {e}")
+            logger.error(f"Failed to fetch {url}: {e}")
             return None
 
     def download_file(self, url: str, output_path: Path, progress_callback=None) -> bool:
@@ -197,7 +170,7 @@ class NetworkManager:
                                 progress_callback(downloaded, total_size, speed)
             return True
         except requests.RequestException as e:
-            logging.error(f"Download failed: {e}")
+            logger.error(f"Download failed: {e}")
             return False
 
     def get_releases(self) -> List[GameVersion]:
@@ -217,7 +190,7 @@ class NetworkManager:
                         ))
             return versions
         except Exception as e:
-            logging.error(f"Failed to fetch releases: {e}")
+            logger.error(f"Failed to fetch releases: {e}")
             return []
 
 class FileManager:
@@ -232,7 +205,7 @@ class FileManager:
                     sha256.update(chunk)
             return sha256.hexdigest()
         except Exception as e:
-            logging.error(f"Failed to calculate checksum: {e}")
+            logger.error(f"Failed to calculate checksum: {e}")
             return ""
 
     @staticmethod
@@ -248,10 +221,10 @@ class FileManager:
                         progress_callback(i + 1, total)
             return True
         except zipfile.BadZipFile as e:
-            logging.error(f"Corrupt zip file: {e}")
+            logger.error(f"Corrupt zip file: {e}")
             return False
         except Exception as e:
-            logging.error(f"Extraction failed: {e}")
+            logger.error(f"Extraction failed: {e}")
             return False
 
     @staticmethod
@@ -272,7 +245,7 @@ class FileManager:
                 path.unlink()
             return True
         except Exception as e:
-            logging.error(f"Failed to delete {path}: {e}")
+            logger.error(f"Failed to delete {path}: {e}")
             return False
 
     @staticmethod
@@ -307,7 +280,7 @@ class DiscordRPC:
             self.update_status("In Launcher", "Browsing Menu")
             return True
         except Exception as e:
-            logging.error(f"Discord RPC failed: {e}")
+            logger.error(f"Discord RPC failed: {e}")
             self.connected = False
             return False
 
@@ -322,7 +295,7 @@ class DiscordRPC:
                     large_text=large_text
                 )
             except Exception as e:
-                logging.error(f"Failed to update RPC: {e}")
+                logger.error(f"Failed to update RPC: {e}")
                 self.connected = False
 
     def disconnect(self):
@@ -331,146 +304,6 @@ class DiscordRPC:
             try:
                 self.rpc.close()
                 self.connected = False
-            except:
-                pass
-
-class GameManager:
-    """Manage game installation and updates"""
-    def __init__(self, config: Config, network: NetworkManager):
-        self.config = config
-        self.network = network
-
-    def get_install_path(self) -> Optional[Path]:
-        """Get game installation path with user selection"""
-        self.ui.print("\n[*] Choose installation location:", Colors.INFO)
-        self.ui.print("  [1] Custom folder (recommended)")
-        self.ui.print("  [2] Default 'GAME' folder")
-
-        choice = self.ui.get_input("Your choice (1/2): ")
-
-        if choice == '1':
-            try:
-                import tkinter as tk
-                from tkinter import filedialog
-                root = tk.Tk()
-                root.withdraw()
-                selected = filedialog.askdirectory(title="Select Among Us Install Folder")
-                root.destroy()
-                if selected:
-                    return Path(selected)
-            except Exception as e:
-                logging.error(f"Folder selection failed: {e}")
-
-        return Path.cwd() / "GAME"
-
-    def download_and_install(self, version: str, url: str, install_path: Path) -> bool:
-        """Download and install game"""
-        zip_file = Path("game.zip")
-
-        self.ui.print(f"\n[*] Downloading version {version}...", Colors.INFO)
-        def progress(current, total, speed):
-            self.ui.show_progress_bar(current, total, "Downloading", speed)
-
-        if not self.network.download_file(url, zip_file, progress):
-            self.ui.print("\n[ERROR] Download failed!", Colors.ERROR)
-            return False
-
-        print()
-
-        if self.config.settings.get("check_integrity"):
-            self.ui.print("[*] Verifying file integrity...", Colors.INFO)
-
-        self.ui.print("[*] Extracting files...", Colors.INFO)
-        install_path.mkdir(parents=True, exist_ok=True)
-
-        def extract_progress(current, total):
-            self.ui.show_progress_bar(current, total, "Extracting")
-
-        if not FileManager.extract_zip(zip_file, install_path, extract_progress):
-            self.ui.print("\n[ERROR] Extraction failed!", Colors.ERROR)
-            return False
-
-        print()
-
-        FileManager.safe_delete(zip_file)
-
-        self.config.set_version(version)
-        self.config.set_game_path(install_path)
-
-        self.ui.print("[✓] Installation complete!", Colors.SUCCESS)
-        return True
-
-    def update_game(self, current_version: str, latest_version: str) -> bool:
-        """Update game to latest version"""
-        url = f"https://github.com/{GITHUB_REPO}/releases/download/{latest_version}/app.zip"
-        game_path = self.config.get_game_path()
-
-        if not game_path:
-            self.ui.print("[ERROR] Game path not found!", Colors.ERROR)
-            return False
-
-        if not self.ui.confirm(f"Update from {current_version} to {latest_version}?"):
-            return False
-
-        return self.download_and_install(latest_version, url, game_path)
-
-    def launch_game(self) -> bool:
-        """Launch the game"""
-        game_path = self.config.get_game_path()
-        if not game_path:
-            self.ui.print("[ERROR] Game not installed!", Colors.ERROR)
-            return False
-
-        exe_path = game_path / "Among Us.exe"
-        if not exe_path.exists():
-            self.ui.print("[ERROR] Game executable not found!", Colors.ERROR)
-            return False
-
-        try:
-            subprocess.Popen([str(exe_path)], cwd=str(game_path))
-            self.ui.print("[✓] Game launched!", Colors.SUCCESS)
-            return True
-        except Exception as e:
-            logging.error(f"Failed to launch game: {e}")
-            self.ui.print(f"[ERROR] Failed to launch: {e}", Colors.ERROR)
-            return False
-    """Discord Rich Presence manager"""
-    def __init__(self):
-        self.rpc: Optional[Presence] = None
-        self.connected = False
-
-    def connect(self) -> bool:
-        """Connect to Discord RPC"""
-        if not DISCORD_RPC_AVAILABLE:
-            return False
-        try:
-            self.rpc = Presence(DISCORD_CLIENT_ID)
-            self.rpc.connect()
-            self.connected = True
-            self.update_status("In Launcher", "Browsing Menu")
-            return True
-        except Exception as e:
-            logging.error(f"Discord RPC failed: {e}")
-            return False
-
-    def update_status(self, state: str, details: str):
-        """Update Discord status"""
-        if self.connected and self.rpc:
-            try:
-                self.rpc.update(
-                    state=state,
-                    details=details,
-                    large_image="amongus",
-                    large_text="Among Us Shadow Slime"
-                )
-            except Exception as e:
-                logging.error(f"Failed to update RPC: {e}")
-
-    def disconnect(self):
-        """Disconnect from Discord RPC"""
-        if self.connected and self.rpc:
-            try:
-                self.rpc.close()
             except:
                 pass
 
@@ -922,7 +755,7 @@ class ModernUI:
                         )
 
             except Exception as e:
-                logging.error(f"Failed to load patches: {e}")
+                logger.error(f"Failed to load patches: {e}")
                 self.show_patch_error(f"Error loading patches: {str(e)}")
 
         threading.Thread(target=fetch_and_display, daemon=True).start()
@@ -1912,30 +1745,29 @@ with auto-updates and mod support.
 def check_launcher_update(network: NetworkManager) -> bool:
     """Check for launcher updates before starting"""
     try:
-        print(f"{Colors.INFO}Checking for launcher updates...{Colors.RESET}")
+        logger.info("Checking for launcher updates...")
         latest = network.fetch_text(LAUNCHER_VERSION_URL)
 
         if latest and latest != LAUNCHER_VERSION:
-            print(f"{Colors.WARNING}Launcher update available: {latest} (current: {LAUNCHER_VERSION}){Colors.RESET}")
-            response = input(f"{Colors.HIGHLIGHT}Download and install update? (yes/no): {Colors.RESET}").lower()
+            logger.warning("Launcher update available: {latest} (current: {LAUNCHER_VERSION})")
+            response = input("Download and install update? (yes/no): ").lower()
 
             if response in ['yes', 'y']:
                 new_exe = Path(f"AmongUsLauncher_{latest}.exe")
-                print(f"{Colors.INFO}Downloading update...{Colors.RESET}")
+                logger.info("Downloading update...")
 
                 if network.download_file(LAUNCHER_DOWNLOAD_URL, new_exe):
-                    print(f"{Colors.SUCCESS}Update downloaded! Please run the new launcher.{Colors.RESET}")
+                    logger.info("Update downloaded! Please run the new launcher.")
                     subprocess.Popen([str(new_exe)])
                     return False
                 else:
-                    print(f"{Colors.ERROR}Update download failed. Continuing with current version.{Colors.RESET}")
+                    logger.error("Update download failed. Continuing with current version.")
         else:
-            print(f"{Colors.SUCCESS}Launcher is up to date{Colors.RESET}")
+            logger.info("Launcher is up to date")
 
         return True
     except Exception as e:
-        logging.error(f"Launcher update check failed: {e}")
-        print(f"{Colors.WARNING}Could not check for updates. Continuing...{Colors.RESET}")
+        logger.warning(f"Launcher update check failed: {e}")
         return True
 
 def is_admin():
@@ -1956,59 +1788,44 @@ def request_admin():
             )
             sys.exit()
         except Exception as e:
-            logging.error(f"Failed to request admin: {e}")
-            print(f"{Colors.ERROR}Failed to request administrator privileges.{Colors.RESET}")
+            logger.error(f"Failed to request admin: {e}")
+            logger.error("Failed to request administrator privileges.")
             return False
     return True
 
 if __name__ == "__main__":
-    print(f"{Colors.INFO}Starting Among Us Launcher...{Colors.RESET}\n")
+    logger.info("Starting Among Us Launcher...")
 
     while True:
         try:
-
             config = Config()
             network = NetworkManager()
 
             if not network.is_connected():
-                print(f"{Colors.ERROR}No internet connection detected!{Colors.RESET}")
-                print(f"{Colors.WARNING}Please connect to the internet and restart the launcher.{Colors.RESET}")
-                input("\nPress Enter to exit...")
+                logger.error("No internet connection detected!")
+                logger.warning("Please connect to the internet and restart the launcher.")
+                input("Press Enter to exit...")
                 break
 
             if not check_launcher_update(network):
                 break
 
-            print(f"\n{Colors.SUCCESS}Launching GUI...{Colors.RESET}\n")
+            logger.info("Launching GUI...")
             time.sleep(0.5)
             app = ModernUI(config, network)
             app.run()
 
-            logging.info("Launcher closed normally")
             break
 
         except KeyboardInterrupt:
-            print(f"\n{Colors.WARNING}[!] Launcher interrupted by user{Colors.RESET}")
-            logging.info("Launcher interrupted by user")
+            logger.info("Launcher interrupted by user")
             break
 
         except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            logging.critical(error_msg, exc_info=True)
-            print(f"\n{Colors.ERROR}╔════════════════════════════════════════════════╗{Colors.RESET}")
-            print(f"{Colors.ERROR}║          CRITICAL ERROR OCCURRED               ║{Colors.RESET}")
-            print(f"{Colors.ERROR}╚════════════════════════════════════════════════╝{Colors.RESET}")
-            print(f"{Colors.ERROR}Error: {str(e)}{Colors.RESET}")
-            print(f"{Colors.INFO}Full error details saved to launcher.log{Colors.RESET}\n")
+            logger.exception("Something went wrong! If you're sure this is an issue with the program, please make an issue with the following details:")
+            print(f"{os.name}/{LAUNCHER_VERSION}")
+            break
 
-            retry = input(f"{Colors.WARNING}Press Enter to restart launcher, or type 'exit' to quit: {Colors.RESET}").strip().lower()
-            if retry == 'exit':
-                logging.info("User chose to exit after error")
-                break
-
-            print(f"\n{Colors.INFO}Restarting launcher...{Colors.RESET}\n")
-
-    print(f"\n{Colors.INFO}══════════════════════════{Colors.RESET}")
-    print(f"{Colors.GOLD}Thanks for using Crewmate!{Colors.RESET}")
-    print(f"{Colors.INFO}══════════════════════════{Colors.RESET}\n")
-    input("Press Enter to close...")
+    logger.info("══════════════════════════")
+    logger.info("Thanks for using Crewmate!")
+    logger.info(f"══════════════════════════")
