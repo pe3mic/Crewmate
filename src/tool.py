@@ -16,12 +16,12 @@ try:
     import requests
     import ctypes
     from loguru import logger
-    from win32com.client import Dispatch
+    # from win32com.client import Dispatch
     import tkinter as tk
     from tkinter import ttk, filedialog, messagebox
 except ImportError as e:
     print(f"Missing required package: {e}")
-    print("Install with: pip install requests loguru pywin32 pillow")
+    print("Install with: pip install requests loguru pillow")
     sys.exit(1)
 
 try:
@@ -66,7 +66,7 @@ class Config:
         """Load launcher settings"""
         default_settings = {
             "auto_update": True,
-            "create_shortcuts": True,
+            "create_shortcuts": False,
             "discord_rpc": True,
             "minimize_on_game_start": False,
             "check_integrity": True,
@@ -393,7 +393,7 @@ class ModernUI:
 
         self.create_menu_section("🛠️ TOOLS", [
             ("Install AUnlocker", self.install_aunlocker, self.accent_blue),
-            ("Create Shortcut", self.create_shortcut, self.text_dim),
+            # ("Create Shortcut", self.create_shortcut, self.text_dim),
             ("Open Folder", self.open_folder, self.text_dim),
             ("Change Location", self.change_location, self.text_dim)
         ])
@@ -1464,28 +1464,29 @@ class ModernUI:
 
         threading.Thread(target=install, daemon=True).start()
 
-    def create_shortcut(self):
-        """Create desktop shortcut"""
-        game_path = self.config.get_game_path()
-        if not game_path:
-            messagebox.showerror("Error", "Game not installed!")
-            return
+    # TODO: rewrite for Windows and Linux
+    # def create_shortcut(self):
+    #     """Create desktop shortcut"""
+    #     game_path = self.config.get_game_path()
+    #     if not game_path:
+    #         messagebox.showerror("Error", "Game not installed!")
+    #         return
 
-        exe = game_path / "Among Us.exe"
-        version = self.config.get_version()
+    #     exe = game_path / "Among Us.exe"
+    #     version = self.config.get_version()
 
-        try:
-            desktop = Path.home() / "Desktop"
-            shortcut_path = desktop / f"Among Us {version}.lnk"
-            shell = Dispatch('WScript.Shell')
-            shortcut = shell.CreateShortCut(str(shortcut_path))
-            shortcut.Targetpath = str(exe)
-            shortcut.WorkingDirectory = str(game_path)
-            shortcut.IconLocation = str(exe)
-            shortcut.save()
-            messagebox.showinfo("Success", "Shortcut created on desktop!")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to create shortcut: {e}")
+    #     try:
+    #         desktop = Path.home() / "Desktop"
+    #         shortcut_path = desktop / f"Among Us {version}.lnk"
+    #         shell = Dispatch('WScript.Shell')
+    #         shortcut = shell.CreateShortCut(str(shortcut_path))
+    #         shortcut.Targetpath = str(exe)
+    #         shortcut.WorkingDirectory = str(game_path)
+    #         shortcut.IconLocation = str(exe)
+    #         shortcut.save()
+    #         messagebox.showinfo("Success", "Shortcut created on desktop!")
+    #     except Exception as e:
+    #         messagebox.showerror("Error", f"Failed to create shortcut: {e}")
 
     def open_folder(self):
         """Open game folder"""
